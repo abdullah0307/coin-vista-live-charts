@@ -20,7 +20,8 @@ export async function fetchTopCoins(
     );
     
     if (!response.ok) {
-      throw new Error("Failed to fetch cryptocurrency data");
+      console.error("API Error:", response.status, response.statusText);
+      return [];
     }
     
     const data = await response.json();
@@ -40,12 +41,18 @@ export async function fetchCoinHistory(
   currency: string = DEFAULT_CURRENCY
 ): Promise<CoinHistoricalData | null> {
   try {
+    if (!coinId) {
+      console.error("No coin ID provided for history fetch");
+      return null;
+    }
+
     const response = await fetch(
       `${API_BASE_URL}/coins/${coinId}/market_chart?vs_currency=${currency}&days=${days}`
     );
     
     if (!response.ok) {
-      throw new Error(`Failed to fetch historical data for ${coinId}`);
+      console.error(`Failed to fetch historical data for ${coinId}:`, response.status, response.statusText);
+      return null;
     }
     
     return await response.json();
@@ -64,8 +71,13 @@ export async function fetchHistoricalDataForPrediction(
   currency: string = DEFAULT_CURRENCY
 ): Promise<number[][] | null> {
   try {
+    if (!coinId) {
+      console.error("No coin ID provided for prediction data");
+      return null;
+    }
+    
     const data = await fetchCoinHistory(coinId, days, currency);
-    return data ? data.prices : null;
+    return data && data.prices ? data.prices : null;
   } catch (error) {
     console.error(`Error fetching prediction data for ${coinId}:`, error);
     return null;
@@ -80,7 +92,8 @@ export async function fetchCoinsList(): Promise<{id: string, name: string, symbo
     const response = await fetch(`${API_BASE_URL}/coins/list`);
     
     if (!response.ok) {
-      throw new Error("Failed to fetch coins list");
+      console.error("Failed to fetch coins list:", response.status, response.statusText);
+      return [];
     }
     
     const data = await response.json();

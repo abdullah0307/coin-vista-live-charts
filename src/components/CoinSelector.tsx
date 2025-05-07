@@ -35,6 +35,9 @@ export const CoinSelector = ({
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
+  // Make sure availableCoins is an array
+  const coins = Array.isArray(availableCoins) ? availableCoins : [];
+
   const toggleCoin = (coinId: string) => {
     if (selectedCoins.includes(coinId)) {
       // Don't allow deselecting if only one coin is selected
@@ -48,7 +51,7 @@ export const CoinSelector = ({
   };
 
   // Filter coins based on search query
-  const filteredCoins = availableCoins.filter(
+  const filteredCoins = coins.filter(
     (coin) =>
       coin.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       coin.symbol.toLowerCase().includes(searchQuery.toLowerCase())
@@ -104,7 +107,7 @@ export const CoinSelector = ({
       </Popover>
 
       <div className="flex flex-wrap gap-2">
-        {availableCoins
+        {coins
           .filter((coin) => selectedCoins.includes(coin.id))
           .map((coin) => (
             <Badge

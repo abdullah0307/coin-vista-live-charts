@@ -235,8 +235,6 @@ export const ForecastChart = ({
                   fillOpacity={0.2}
                   fill="url(#colorConfidence)"
                   isAnimationActive={true}
-                  // Fix: Convert array of numbers to a string baseLine to point to the dataKey
-                  baseLine="forecast"
                 />
                 <Area
                   type="monotone"
@@ -245,8 +243,6 @@ export const ForecastChart = ({
                   fillOpacity={0.2}
                   fill="url(#colorConfidence)"
                   isAnimationActive={true}
-                  // Fix: Convert array of numbers to a string baseLine to point to the dataKey
-                  baseLine="forecast"
                 />
               </AreaChart>
             </ResponsiveContainer>
