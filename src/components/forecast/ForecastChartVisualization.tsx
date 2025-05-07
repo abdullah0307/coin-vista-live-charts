@@ -10,16 +10,23 @@ import {
   ReferenceLine,
 } from "recharts";
 import { PredictionResult } from "@/types/crypto";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { AlertTriangle } from "lucide-react";
 
 interface ForecastChartVisualizationProps {
   predictionData: PredictionResult | null;
   isLoading: boolean;
+  error?: string | null;
 }
 
-const ForecastChartVisualization = ({ predictionData, isLoading }: ForecastChartVisualizationProps) => {
+const ForecastChartVisualization = ({ 
+  predictionData, 
+  isLoading, 
+  error 
+}: ForecastChartVisualizationProps) => {
   // Format large numbers for y-axis
   const formatYAxis = (value: number) => {
-    if (value >= 1e12) return `${(value / 1e12).toFixed(1)}T`;
+    if (value >= 1e12) return `${(value / 1e9).toFixed(1)}T`;
     if (value >= 1e9) return `${(value / 1e9).toFixed(1)}B`;
     if (value >= 1e6) return `${(value / 1e6).toFixed(1)}M`;
     if (value >= 1e3) return `${(value / 1e3).toFixed(1)}K`;
@@ -43,6 +50,16 @@ const ForecastChartVisualization = ({ predictionData, isLoading }: ForecastChart
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
       </div>
+    );
+  }
+  
+  if (error) {
+    return (
+      <Alert variant="destructive" className="mb-4">
+        <AlertTriangle className="h-4 w-4" />
+        <AlertTitle>Error</AlertTitle>
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>
     );
   }
   

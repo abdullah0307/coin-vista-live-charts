@@ -32,7 +32,7 @@ const ForecastChart = ({
     });
   };
 
-  const { predictionData, isLoading } = useForecastData({
+  const { predictionData, isLoading, error } = useForecastData({
     coinId: selectedCoinId,
     predictionModel,
     forecastDays,
@@ -66,7 +66,8 @@ const ForecastChart = ({
 
         <ForecastChartVisualization 
           predictionData={predictionData} 
-          isLoading={isLoading} 
+          isLoading={isLoading}
+          error={error}
         />
       </CardContent>
     </Card>

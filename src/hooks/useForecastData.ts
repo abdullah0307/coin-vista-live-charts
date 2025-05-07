@@ -15,6 +15,7 @@ interface UseForecastDataProps {
 interface ForecastDataState {
   predictionData: PredictionResult | null;
   isLoading: boolean;
+  error: string | null;
 }
 
 const useForecastData = ({
@@ -26,34 +27,52 @@ const useForecastData = ({
 }: UseForecastDataProps): ForecastDataState => {
   const [state, setState] = useState<ForecastDataState>({
     predictionData: null,
-    isLoading: false
+    isLoading: false,
+    error: null
   });
 
   useEffect(() => {
     if (!coinId) return;
 
     const generateForecast = async () => {
-      setState(prev => ({ ...prev, isLoading: true }));
+      setState(prev => ({ ...prev, isLoading: true, error: null }));
       
       try {
         const historicalData = await fetchHistoricalDataForPrediction(coinId, historicalDays);
         
         if (!historicalData || historicalData.length < 30) {
+          const errorMessage = "Not enough historical data available for prediction";
+          setState(prev => ({ 
+            ...prev, 
+            isLoading: false,
+            error: errorMessage
+          }));
+          
           if (onError) {
-            onError("Not enough historical data available for prediction");
+            onError(errorMessage);
           }
-          setState(prev => ({ ...prev, isLoading: false }));
           return;
         }
 
         const prediction = predictCoinPrice(historicalData, predictionModel, forecastDays);
-        setState({ predictionData: prediction, isLoading: false });
+        setState({ 
+          predictionData: prediction, 
+          isLoading: false,
+          error: null
+        });
       } catch (error) {
         console.error("Forecast error:", error);
+        const errorMessage = "Failed to generate forecast. Please try again later.";
+        
+        setState(prev => ({ 
+          ...prev, 
+          isLoading: false,
+          error: errorMessage
+        }));
+        
         if (onError) {
-          onError("Failed to generate forecast. Please try again later.");
+          onError(errorMessage);
         }
-        setState(prev => ({ ...prev, isLoading: false }));
       }
     };
 
