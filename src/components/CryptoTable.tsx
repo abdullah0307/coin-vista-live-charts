@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { ArrowUp, ArrowDown } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -19,6 +18,11 @@ export const CryptoTable = ({ coins, isLoading }: CryptoTableProps) => {
 
   useEffect(() => {
     // Create a sorted copy of the coins array
+    if (!coins || coins.length === 0) {
+      setSortedCoins([]);
+      return;
+    }
+
     const sorted = [...coins].sort((a, b) => {
       const aValue = a[sortKey] as number;
       const bValue = b[sortKey] as number;
@@ -119,6 +123,14 @@ export const CryptoTable = ({ coins, isLoading }: CryptoTableProps) => {
             ))}
           </TableBody>
         </Table>
+      </div>
+    );
+  }
+
+  if (!sortedCoins || sortedCoins.length === 0) {
+    return (
+      <div className="border rounded-lg overflow-hidden p-6 text-center">
+        <p>No coins data available. Please select coins to display.</p>
       </div>
     );
   }

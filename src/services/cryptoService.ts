@@ -23,7 +23,8 @@ export async function fetchTopCoins(
       throw new Error("Failed to fetch cryptocurrency data");
     }
     
-    return await response.json();
+    const data = await response.json();
+    return Array.isArray(data) ? data : [];
   } catch (error) {
     console.error("Error fetching cryptocurrency data:", error);
     return [];
@@ -65,7 +66,8 @@ export async function fetchCoinsList(): Promise<{id: string, name: string, symbo
       throw new Error("Failed to fetch coins list");
     }
     
-    return await response.json();
+    const data = await response.json();
+    return Array.isArray(data) ? data : [];
   } catch (error) {
     console.error("Error fetching coins list:", error);
     return [];

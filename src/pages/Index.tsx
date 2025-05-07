@@ -22,6 +22,16 @@ const Index = () => {
       const data = await fetchTopCoins(100, "usd", true, "1h,24h,7d,30d");
       
       // Filter to only get the selected coins and make sure they exist
+      if (!data || data.length === 0) {
+        setCoins([]);
+        toast({
+          title: "No data available",
+          description: "Could not fetch cryptocurrency data. Please try again later.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
       const filteredCoins = data.filter(coin => 
         selectedCoinIds.includes(coin.id)
       );
@@ -50,11 +60,18 @@ const Index = () => {
   const fetchAvailableCoins = useCallback(async () => {
     try {
       const coinsList = await fetchCoinsList();
-      setAvailableCoins(coinsList);
+      if (coinsList && coinsList.length > 0) {
+        setAvailableCoins(coinsList);
+      }
     } catch (error) {
       console.error("Error fetching coins list:", error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch available coins. Please try again later.",
+        variant: "destructive",
+      });
     }
-  }, []);
+  }, [toast]);
 
   // Initial data fetch
   useEffect(() => {
@@ -71,7 +88,16 @@ const Index = () => {
 
   // Handle coin selection change
   const handleSelectionChange = (coinIds: string[]) => {
-    setSelectedCoinIds(coinIds);
+    if (Array.isArray(coinIds) && coinIds.length > 0) {
+      setSelectedCoinIds(coinIds);
+    } else {
+      // If empty selection, fallback to default coins
+      setSelectedCoinIds(getDefaultCoins());
+      toast({
+        title: "Selection Required",
+        description: "Please select at least one coin to display.",
+      });
+    }
   };
 
   // Manual refresh
@@ -100,13 +126,15 @@ const Index = () => {
         </div>
 
         {/* Coin selector */}
-        <CoinSelector
-          availableCoins={availableCoins}
-          selectedCoins={selectedCoinIds}
-          onSelectionChange={handleSelectionChange}
-          onRefresh={handleRefresh}
-          isLoading={isLoading}
-        />
+        {availableCoins && availableCoins.length > 0 && (
+          <CoinSelector
+            availableCoins={availableCoins}
+            selectedCoins={selectedCoinIds}
+            onSelectionChange={handleSelectionChange}
+            onRefresh={handleRefresh}
+            isLoading={isLoading}
+          />
+        )}
         
         {/* Market overview */}
         <CryptoHeader coins={coins} isLoading={isLoading} />
