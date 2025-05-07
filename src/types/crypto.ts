@@ -28,3 +28,12 @@ export interface ChartData {
   name: string;
   value: number;
 }
+
+export type PredictionModelType = 'arima' | 'prophet' | 'lstm';
+
+export interface PredictionResult {
+  forecast: number[];
+  upperBound: number[];
+  lowerBound: number[];
+  dates: string[];
+}

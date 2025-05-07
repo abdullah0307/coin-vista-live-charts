@@ -5,12 +5,14 @@ import CryptoHeader from "@/components/CryptoHeader";
 import CryptoChart from "@/components/CryptoChart";
 import CryptoTable from "@/components/CryptoTable";
 import CoinSelector from "@/components/CoinSelector";
+import ForecastChart from "@/components/ForecastChart";
 import { fetchTopCoins, fetchCoinsList, getDefaultCoins } from "@/services/cryptoService";
 import { Coin } from "@/types/crypto";
 
 const Index = () => {
   const [coins, setCoins] = useState<Coin[]>([]);
   const [selectedCoinIds, setSelectedCoinIds] = useState<string[]>(getDefaultCoins());
+  const [activeForecastCoin, setActiveForecastCoin] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [availableCoins, setAvailableCoins] = useState<{id: string, name: string, symbol: string}[]>([]);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
@@ -38,11 +40,16 @@ const Index = () => {
       
       if (filteredCoins.length > 0) {
         setCoins(filteredCoins);
+        // Set the first coin as the active forecast coin if none is selected
+        if (!activeForecastCoin && filteredCoins.length > 0) {
+          setActiveForecastCoin(filteredCoins[0].id);
+        }
         setLastUpdated(new Date());
       } else if (data.length > 0) {
         // If none of the selected coins were found, use the top coins
         setCoins(data.slice(0, 5));
         setSelectedCoinIds(data.slice(0, 5).map(coin => coin.id));
+        setActiveForecastCoin(data[0].id);
         setLastUpdated(new Date());
       }
     } catch (error) {
@@ -55,7 +62,7 @@ const Index = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [selectedCoinIds, toast]);
+  }, [selectedCoinIds, toast, activeForecastCoin]);
 
   const fetchAvailableCoins = useCallback(async () => {
     try {
@@ -90,6 +97,10 @@ const Index = () => {
   const handleSelectionChange = (coinIds: string[]) => {
     if (Array.isArray(coinIds) && coinIds.length > 0) {
       setSelectedCoinIds(coinIds);
+      // Update active forecast coin if it's not in the selection anymore
+      if (!coinIds.includes(activeForecastCoin)) {
+        setActiveForecastCoin(coinIds[0]);
+      }
     } else {
       // If empty selection, fallback to default coins
       setSelectedCoinIds(getDefaultCoins());
@@ -107,6 +118,12 @@ const Index = () => {
       title: "Refreshed",
       description: "Cryptocurrency data has been updated.",
     });
+  };
+
+  // Get active coin name for forecast
+  const getActiveCoinName = () => {
+    const coin = coins.find(c => c.id === activeForecastCoin);
+    return coin ? coin.name : "Coin";
   };
 
   return (
@@ -141,6 +158,34 @@ const Index = () => {
         
         {/* Charts */}
         <CryptoChart coins={coins} isLoading={isLoading} />
+
+        {/* Forecast section */}
+        {activeForecastCoin && (
+          <div className="mb-6">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold">Price Forecasting</h2>
+              <div className="flex gap-2">
+                {coins.map((coin) => (
+                  <button
+                    key={coin.id}
+                    onClick={() => setActiveForecastCoin(coin.id)}
+                    className={`px-3 py-1 text-xs rounded-full ${
+                      activeForecastCoin === coin.id
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-secondary text-secondary-foreground"
+                    }`}
+                  >
+                    {coin.symbol.toUpperCase()}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <ForecastChart 
+              selectedCoinId={activeForecastCoin} 
+              coinName={getActiveCoinName()} 
+            />
+          </div>
+        )}
         
         {/* Data table */}
         <CryptoTable coins={coins} isLoading={isLoading} />

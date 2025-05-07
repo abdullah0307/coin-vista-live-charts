@@ -56,6 +56,23 @@ export async function fetchCoinHistory(
 }
 
 /**
+ * Fetches historical data for time series prediction (more data points)
+ */
+export async function fetchHistoricalDataForPrediction(
+  coinId: string, 
+  days: number = 90, 
+  currency: string = DEFAULT_CURRENCY
+): Promise<number[][] | null> {
+  try {
+    const data = await fetchCoinHistory(coinId, days, currency);
+    return data ? data.prices : null;
+  } catch (error) {
+    console.error(`Error fetching prediction data for ${coinId}:`, error);
+    return null;
+  }
+}
+
+/**
  * Fetches available coins list
  */
 export async function fetchCoinsList(): Promise<{id: string, name: string, symbol: string}[]> {
