@@ -5,7 +5,7 @@ import CryptoHeader from "@/components/CryptoHeader";
 import CryptoChart from "@/components/CryptoChart";
 import CryptoTable from "@/components/CryptoTable";
 import CoinSelector from "@/components/CoinSelector";
-import ForecastChart from "@/components/ForecastChart";
+import ForecastChart from "@/components/forecast/ForecastChart";
 import { fetchTopCoins, fetchCoinsList, getDefaultCoins } from "@/services/cryptoService";
 import { Coin } from "@/types/crypto";
 
