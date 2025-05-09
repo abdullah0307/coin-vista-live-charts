@@ -1,6 +1,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useToast } from "@/components/ui/use-toast";
+import Header from "@/components/Header";  // Import the Header component
 import CryptoHeader from "@/components/CryptoHeader";
 import CryptoChart from "@/components/CryptoChart";
 import CryptoTable from "@/components/CryptoTable";
@@ -128,6 +129,9 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
+      {/* Add Header component */}
+      <Header />
+      
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6">
