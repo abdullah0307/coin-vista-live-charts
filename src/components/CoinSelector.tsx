@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Check, ChevronDown, ChevronUp, RefreshCw, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -35,7 +35,7 @@ export const CoinSelector = ({
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Make sure availableCoins is an array
+  // Make sure availableCoins is an array and provide a default empty array
   const coins = Array.isArray(availableCoins) ? availableCoins : [];
 
   const toggleCoin = (coinId: string) => {
@@ -69,6 +69,12 @@ export const CoinSelector = ({
       coin.symbol.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  // Generate the list of selected coins for display
+  const selectedCoinItems = selectedCoins
+    .map(coinId => coins.find(coin => coin.id === coinId))
+    .filter(Boolean)
+    .map(coin => coin!);
+
   return (
     <div className="flex flex-wrap items-center gap-2 mb-4">
       <Popover open={open} onOpenChange={setOpen}>
@@ -92,85 +98,85 @@ export const CoinSelector = ({
               className="border-b border-border"
             />
             <CommandEmpty>No coins found.</CommandEmpty>
-            <CommandGroup className="max-h-[300px] overflow-y-auto">
-              {filteredCoins.map((coin) => {
-                const isSelected = selectedCoins.includes(coin.id);
-                const isDisabled = !isSelected && selectedCoins.length >= 8;
-                
-                return (
-                  <CommandItem
-                    key={coin.id}
-                    value={coin.id}
-                    onSelect={() => toggleCoin(coin.id)}
-                    className={cn(
-                      "flex items-center justify-between",
-                      isSelected ? "bg-accent" : "",
-                      isDisabled ? "opacity-50 cursor-not-allowed" : ""
-                    )}
-                    disabled={isDisabled}
-                  >
-                    <div className="flex items-center gap-2">
-                      <div className="w-5 h-5 rounded-full overflow-hidden flex items-center justify-center bg-muted">
-                        <img
-                          src={getCoinLogo(coin.symbol)}
-                          alt={coin.name}
-                          width={20}
-                          height={20}
-                          onError={(e) => {
-                            // If image fails to load, use first letter of symbol as fallback
-                            (e.target as HTMLImageElement).style.display = 'none';
-                            (e.target as HTMLImageElement).parentElement!.innerText = 
-                              coin.symbol.charAt(0).toUpperCase();
-                          }}
-                        />
+            {filteredCoins.length > 0 && (
+              <CommandGroup className="max-h-[300px] overflow-y-auto">
+                {filteredCoins.map((coin) => {
+                  const isSelected = selectedCoins.includes(coin.id);
+                  const isDisabled = !isSelected && selectedCoins.length >= 8;
+                  
+                  return (
+                    <CommandItem
+                      key={coin.id}
+                      value={coin.id}
+                      onSelect={() => toggleCoin(coin.id)}
+                      className={cn(
+                        "flex items-center justify-between",
+                        isSelected ? "bg-accent" : "",
+                        isDisabled ? "opacity-50 cursor-not-allowed" : ""
+                      )}
+                      disabled={isDisabled}
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className="w-5 h-5 rounded-full overflow-hidden flex items-center justify-center bg-muted">
+                          <img
+                            src={getCoinLogo(coin.symbol)}
+                            alt={coin.name}
+                            width={20}
+                            height={20}
+                            onError={(e) => {
+                              // If image fails to load, use first letter of symbol as fallback
+                              (e.target as HTMLImageElement).style.display = 'none';
+                              (e.target as HTMLImageElement).parentElement!.innerText = 
+                                coin.symbol.charAt(0).toUpperCase();
+                            }}
+                          />
+                        </div>
+                        <span>
+                          {coin.name} <span className="text-muted-foreground text-xs">({coin.symbol.toUpperCase()})</span>
+                        </span>
                       </div>
-                      <span>
-                        {coin.name} <span className="text-muted-foreground text-xs">({coin.symbol.toUpperCase()})</span>
-                      </span>
-                    </div>
-                    {isSelected && (
-                      <Check className="w-4 h-4 text-primary" />
-                    )}
-                  </CommandItem>
-                );
-              })}
-            </CommandGroup>
+                      {isSelected && (
+                        <Check className="w-4 h-4 text-primary" />
+                      )}
+                    </CommandItem>
+                  );
+                })}
+              </CommandGroup>
+            )}
           </Command>
         </PopoverContent>
       </Popover>
 
       <div className="flex flex-wrap gap-2">
-        {coins
-          .filter((coin) => selectedCoins.includes(coin.id))
-          .map((coin) => (
-            <Badge
-              key={coin.id}
-              variant="secondary"
-              className="px-2 py-1 flex items-center gap-1.5 bg-secondary hover:bg-secondary/80 text-secondary-foreground"
-            >
-              <div className="w-4 h-4 rounded-full overflow-hidden flex items-center justify-center">
-                <img
-                  src={getCoinLogo(coin.symbol)}
-                  alt={coin.name}
-                  width={16}
-                  height={16}
-                  onError={(e) => {
-                    // If image fails to load, use first letter of symbol as fallback
-                    (e.target as HTMLImageElement).style.display = 'none';
-                    (e.target as HTMLImageElement).parentElement!.innerText = 
-                      coin.symbol.charAt(0).toUpperCase();
-                  }}
-                />
-              </div>
-              {coin.symbol.toUpperCase()}
-              {selectedCoins.length > 1 && (
-                <X 
-                  className="w-3 h-3 ml-0.5 cursor-pointer text-muted-foreground hover:text-foreground" 
-                  onClick={(e) => removeCoin(e, coin.id)}
-                />
-              )}
-            </Badge>
-          ))}
+        {selectedCoinItems.map((coin) => (
+          <Badge
+            key={coin.id}
+            variant="secondary"
+            className="px-2 py-1 flex items-center gap-1.5 bg-secondary hover:bg-secondary/80 text-secondary-foreground"
+          >
+            <div className="w-4 h-4 rounded-full overflow-hidden flex items-center justify-center">
+              <img
+                src={getCoinLogo(coin.symbol)}
+                alt={coin.name}
+                width={16}
+                height={16}
+                onError={(e) => {
+                  // If image fails to load, use first letter of symbol as fallback
+                  (e.target as HTMLImageElement).style.display = 'none';
+                  (e.target as HTMLImageElement).parentElement!.innerText = 
+                    coin.symbol.charAt(0).toUpperCase();
+                }}
+              />
+            </div>
+            {coin.symbol.toUpperCase()}
+            {selectedCoins.length > 1 && (
+              <X 
+                className="w-3 h-3 ml-0.5 cursor-pointer text-muted-foreground hover:text-foreground" 
+                onClick={(e) => removeCoin(e, coin.id)}
+              />
+            )}
+          </Badge>
+        ))}
       </div>
 
       <div className="ml-auto">
