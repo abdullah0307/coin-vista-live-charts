@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { Check, ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, RefreshCw, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Command,
@@ -50,6 +50,18 @@ export const CoinSelector = ({
     }
   };
 
+  const removeCoin = (e: React.MouseEvent, coinId: string) => {
+    e.stopPropagation();
+    if (selectedCoins.length > 1) {
+      onSelectionChange(selectedCoins.filter((id) => id !== coinId));
+    }
+  };
+
+  // Get coin logo URL
+  const getCoinLogo = (coinId: string) => {
+    return `https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@1a63530be6e374711a8554f31b17e4cb92c25fa5/128/color/${coinId.toLowerCase()}.png`;
+  };
+
   // Filter coins based on search query
   const filteredCoins = coins.filter(
     (coin) =>
@@ -65,42 +77,63 @@ export const CoinSelector = ({
             variant="outline"
             role="combobox"
             aria-expanded={open}
-            className="flex items-center justify-between gap-1 px-3 min-w-[180px]"
+            className="flex items-center justify-between gap-1 px-3 min-w-[180px] bg-background border-border hover:bg-accent"
           >
             <span>Select Coins</span>
             {open ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-[300px] p-0" align="start">
+        <PopoverContent className="w-[300px] p-0 bg-popover" align="start">
           <Command>
             <CommandInput 
               placeholder="Search coins..." 
               value={searchQuery}
               onValueChange={setSearchQuery}
+              className="border-b border-border"
             />
             <CommandEmpty>No coins found.</CommandEmpty>
             <CommandGroup className="max-h-[300px] overflow-y-auto">
-              {filteredCoins.map((coin) => (
-                <CommandItem
-                  key={coin.id}
-                  value={coin.id}
-                  onSelect={() => toggleCoin(coin.id)}
-                  className={cn(
-                    "flex items-center justify-between",
-                    selectedCoins.includes(coin.id) ? "bg-accent" : ""
-                  )}
-                  disabled={!selectedCoins.includes(coin.id) && selectedCoins.length >= 8}
-                >
-                  <div className="flex items-center">
-                    <span>
-                      {coin.name} ({coin.symbol.toUpperCase()})
-                    </span>
-                  </div>
-                  {selectedCoins.includes(coin.id) && (
-                    <Check className="w-4 h-4" />
-                  )}
-                </CommandItem>
-              ))}
+              {filteredCoins.map((coin) => {
+                const isSelected = selectedCoins.includes(coin.id);
+                const isDisabled = !isSelected && selectedCoins.length >= 8;
+                
+                return (
+                  <CommandItem
+                    key={coin.id}
+                    value={coin.id}
+                    onSelect={() => toggleCoin(coin.id)}
+                    className={cn(
+                      "flex items-center justify-between",
+                      isSelected ? "bg-accent" : "",
+                      isDisabled ? "opacity-50 cursor-not-allowed" : ""
+                    )}
+                    disabled={isDisabled}
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="w-5 h-5 rounded-full overflow-hidden flex items-center justify-center bg-muted">
+                        <img
+                          src={getCoinLogo(coin.symbol)}
+                          alt={coin.name}
+                          width={20}
+                          height={20}
+                          onError={(e) => {
+                            // If image fails to load, use first letter of symbol as fallback
+                            (e.target as HTMLImageElement).style.display = 'none';
+                            (e.target as HTMLImageElement).parentElement!.innerText = 
+                              coin.symbol.charAt(0).toUpperCase();
+                          }}
+                        />
+                      </div>
+                      <span>
+                        {coin.name} <span className="text-muted-foreground text-xs">({coin.symbol.toUpperCase()})</span>
+                      </span>
+                    </div>
+                    {isSelected && (
+                      <Check className="w-4 h-4 text-primary" />
+                    )}
+                  </CommandItem>
+                );
+              })}
             </CommandGroup>
           </Command>
         </PopoverContent>
@@ -113,9 +146,29 @@ export const CoinSelector = ({
             <Badge
               key={coin.id}
               variant="secondary"
-              className="px-2 py-1"
+              className="px-2 py-1 flex items-center gap-1.5 bg-secondary hover:bg-secondary/80 text-secondary-foreground"
             >
-              {coin.name}
+              <div className="w-4 h-4 rounded-full overflow-hidden flex items-center justify-center">
+                <img
+                  src={getCoinLogo(coin.symbol)}
+                  alt={coin.name}
+                  width={16}
+                  height={16}
+                  onError={(e) => {
+                    // If image fails to load, use first letter of symbol as fallback
+                    (e.target as HTMLImageElement).style.display = 'none';
+                    (e.target as HTMLImageElement).parentElement!.innerText = 
+                      coin.symbol.charAt(0).toUpperCase();
+                  }}
+                />
+              </div>
+              {coin.symbol.toUpperCase()}
+              {selectedCoins.length > 1 && (
+                <X 
+                  className="w-3 h-3 ml-0.5 cursor-pointer text-muted-foreground hover:text-foreground" 
+                  onClick={(e) => removeCoin(e, coin.id)}
+                />
+              )}
             </Badge>
           ))}
       </div>
@@ -126,7 +179,10 @@ export const CoinSelector = ({
           variant="outline"
           onClick={onRefresh}
           disabled={isLoading}
-          className={cn(isLoading && "animate-spin")}
+          className={cn(
+            "bg-background border-border hover:bg-accent",
+            isLoading && "animate-spin"
+          )}
         >
           <RefreshCw className="w-4 h-4" />
         </Button>
