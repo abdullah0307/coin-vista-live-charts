@@ -16,7 +16,12 @@ import {
 } from "@/components/ui/form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { UserPlus } from "lucide-react";
+import { UserPlus, ArrowRight } from "lucide-react";
+import { 
+  InputOTP, 
+  InputOTPGroup, 
+  InputOTPSlot 
+} from "@/components/ui/input-otp";
 
 const signupSchema = z
   .object({
@@ -29,12 +34,20 @@ const signupSchema = z
     path: ["confirmPassword"],
   });
 
+const otpSchema = z.object({
+  otp: z.string().length(6, "Please enter a valid 6-digit code"),
+});
+
 type SignupFormValues = z.infer<typeof signupSchema>;
+type OtpFormValues = z.infer<typeof otpSchema>;
 
 export default function SignupForm() {
-  const { signup } = useAuth();
+  const { signup, sendVerificationCode, verifyCode } = useAuth();
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [verificationStep, setVerificationStep] = useState(false);
+  const [userEmail, setUserEmail] = useState("");
+  const [userPassword, setUserPassword] = useState("");
 
   const form = useForm<SignupFormValues>({
     resolver: zodResolver(signupSchema),
@@ -45,12 +58,38 @@ export default function SignupForm() {
     },
   });
 
+  const otpForm = useForm<OtpFormValues>({
+    resolver: zodResolver(otpSchema),
+    defaultValues: {
+      otp: "",
+    },
+  });
+
   const onSubmit = async (values: SignupFormValues) => {
     setIsSubmitting(true);
     try {
-      const user = await signup(values.email, values.password);
-      if (user) {
-        navigate("/");
+      // Send verification email with code
+      const sent = await sendVerificationCode(values.email);
+      if (sent) {
+        setUserEmail(values.email);
+        setUserPassword(values.password);
+        setVerificationStep(true);
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const onVerifySubmit = async (values: OtpFormValues) => {
+    setIsSubmitting(true);
+    try {
+      const verified = await verifyCode(userEmail, values.otp);
+      if (verified) {
+        // Now create the account after verification
+        const user = await signup(userEmail, userPassword);
+        if (user) {
+          navigate("/");
+        }
       }
     } finally {
       setIsSubmitting(false);
@@ -66,61 +105,118 @@ export default function SignupForm() {
         </p>
       </div>
 
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-          <FormField
-            control={form.control}
-            name="email"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Email</FormLabel>
-                <FormControl>
-                  <Input placeholder="you@example.com" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+      {!verificationStep ? (
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email</FormLabel>
+                  <FormControl>
+                    <Input placeholder="you@example.com" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-          <FormField
-            control={form.control}
-            name="password"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Password</FormLabel>
-                <FormControl>
-                  <Input type="password" placeholder="••••••••" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+            <FormField
+              control={form.control}
+              name="password"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Password</FormLabel>
+                  <FormControl>
+                    <Input type="password" placeholder="••••••••" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-          <FormField
-            control={form.control}
-            name="confirmPassword"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Confirm Password</FormLabel>
-                <FormControl>
-                  <Input type="password" placeholder="••••••••" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+            <FormField
+              control={form.control}
+              name="confirmPassword"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Confirm Password</FormLabel>
+                  <FormControl>
+                    <Input type="password" placeholder="••••••••" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-          <Button type="submit" className="w-full" disabled={isSubmitting}>
-            {isSubmitting ? (
-              "Creating Account..."
-            ) : (
-              <>
-                <UserPlus className="mr-2 h-4 w-4" /> Sign Up
-              </>
-            )}
-          </Button>
-        </form>
-      </Form>
+            <Button type="submit" className="w-full" disabled={isSubmitting}>
+              {isSubmitting ? (
+                "Sending Verification..."
+              ) : (
+                <>
+                  Continue <ArrowRight className="ml-2 h-4 w-4" />
+                </>
+              )}
+            </Button>
+          </form>
+        </Form>
+      ) : (
+        <div className="space-y-4">
+          <div className="rounded-md bg-muted p-3 text-center">
+            <p className="text-sm font-medium">
+              A verification code has been sent to
+            </p>
+            <p className="text-sm font-bold">{userEmail}</p>
+          </div>
+
+          <Form {...otpForm}>
+            <form onSubmit={otpForm.handleSubmit(onVerifySubmit)} className="space-y-4">
+              <FormField
+                control={otpForm.control}
+                name="otp"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Verification Code</FormLabel>
+                    <FormControl>
+                      <InputOTP maxLength={6} {...field}>
+                        <InputOTPGroup>
+                          <InputOTPSlot index={0} />
+                          <InputOTPSlot index={1} />
+                          <InputOTPSlot index={2} />
+                          <InputOTPSlot index={3} />
+                          <InputOTPSlot index={4} />
+                          <InputOTPSlot index={5} />
+                        </InputOTPGroup>
+                      </InputOTP>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <Button type="submit" className="w-full" disabled={isSubmitting}>
+                {isSubmitting ? (
+                  "Creating Account..."
+                ) : (
+                  <>
+                    <UserPlus className="mr-2 h-4 w-4" /> Sign Up
+                  </>
+                )}
+              </Button>
+
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={() => setVerificationStep(false)}
+              >
+                Back
+              </Button>
+            </form>
+          </Form>
+        </div>
+      )}
 
       <div className="mt-4 text-center text-sm">
         <p>
