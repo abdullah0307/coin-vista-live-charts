@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import Header from "@/components/Header";  // Import the Header component
@@ -112,8 +111,11 @@ const Index = () => {
     }
   };
 
-  // Manual refresh
-  const handleRefresh = () => {
+  // Manual refresh - updated to prevent full page reload
+  const handleRefresh = (e?: React.MouseEvent) => {
+    // If there's an event, prevent default behavior
+    if (e) e.preventDefault();
+    
     fetchCoinsData();
     toast({
       title: "Refreshed",

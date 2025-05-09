@@ -75,6 +75,12 @@ export const CoinSelector = ({
     .filter(Boolean)
     .map(coin => coin!);
 
+  // Handle refresh button click
+  const handleRefreshClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    onRefresh();
+  };
+
   return (
     <div className="flex flex-wrap items-center gap-2 mb-4">
       <Popover open={open} onOpenChange={setOpen}>
@@ -183,7 +189,7 @@ export const CoinSelector = ({
         <Button 
           size="icon" 
           variant="outline"
-          onClick={onRefresh}
+          onClick={handleRefreshClick}
           disabled={isLoading}
           className={cn(
             "bg-background border-border hover:bg-accent",
