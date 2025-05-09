@@ -2,15 +2,17 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
+import { getAnalytics } from "firebase/analytics";
 
 // Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyBiD-XIGit7Rj0ERZaXv1GRwMzjQO5Gk2U",
-  authDomain: "coinvista-dashboard.firebaseapp.com",
-  projectId: "coinvista-dashboard",
-  storageBucket: "coinvista-dashboard.appspot.com",
-  messagingSenderId: "868826549919",
-  appId: "1:868826549919:web:92f1a5976842e04b3a0a1a"
+  apiKey: "AIzaSyDPdnfXtWc_UDmmFQQje03i3ajbWnTaRUM",
+  authDomain: "pizzachatbot-e85cc.firebaseapp.com",
+  projectId: "pizzachatbot-e85cc",
+  storageBucket: "pizzachatbot-e85cc.firebasestorage.app",
+  messagingSenderId: "866183232347",
+  appId: "1:866183232347:web:c164b68cf19881c83ef87e",
+  measurementId: "G-JMF4DY9Z0H"
 };
 
 // Initialize Firebase
@@ -18,4 +20,11 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 
+// Initialize Analytics if in browser environment
+let analytics = null;
+if (typeof window !== 'undefined') {
+  analytics = getAnalytics(app);
+}
+
+export { analytics };
 export default app;
