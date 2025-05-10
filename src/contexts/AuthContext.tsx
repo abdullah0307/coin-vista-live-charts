@@ -7,7 +7,8 @@ import {
   signOut, 
   onAuthStateChanged,
   updateProfile,
-  sendEmailVerification
+  sendEmailVerification,
+  AuthError
 } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
@@ -46,14 +47,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       toast({
         title: "Verification email sent",
-        description: `A verification email has been sent to ${user.email}. Please check your inbox (and spam folder).`,
+        description: `A verification email has been sent to ${user.email}. Please check both your inbox and spam folders.`,
       });
       
       return true;
     } catch (error: any) {
+      console.error("Error sending verification email:", error);
+      
+      // Provide more specific error messages
+      let errorMessage = "Failed to send verification email. Please try again later.";
+      
+      if (error?.code === 'auth/too-many-requests') {
+        errorMessage = "Too many verification requests. Please wait a while before trying again.";
+      } else if (error?.code === 'auth/internal-error') {
+        errorMessage = "Server error. Please try again later or contact support.";
+      }
+      
       toast({
-        title: "Failed to send verification email",
-        description: error.message,
+        title: "Email verification failed",
+        description: errorMessage,
         variant: "destructive",
       });
       return false;
@@ -71,14 +83,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       toast({
         title: "Account created successfully",
-        description: "Please verify your email before logging in.",
+        description: "Please verify your email before logging in. Check both your inbox and spam folder.",
       });
       
       return user;
     } catch (error: any) {
+      console.error("Signup error:", error);
+      
+      // Provide more specific error messages based on Firebase error codes
+      let errorMessage = error.message;
+      
+      if (error.code === 'auth/email-already-in-use') {
+        errorMessage = "This email is already registered. Please log in or use a different email.";
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = "The email address is not valid. Please check and try again.";
+      } else if (error.code === 'auth/weak-password') {
+        errorMessage = "Password is too weak. Please choose a stronger password.";
+      }
+      
       toast({
         title: "Signup failed",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive",
       });
       return null;
@@ -92,15 +117,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const user = userCredential.user;
       
       if (!user.emailVerified) {
-        toast({
-          title: "Email not verified",
-          description: "Please verify your email before logging in. Check your inbox for the verification link.",
-          variant: "destructive",
-        });
+        // Send a fresh verification email if not verified
+        await sendVerificationEmail(user);
         
-        // Auto-logout the user
+        // Force sign out since email isn't verified
         await signOut(auth);
-        return null;
+        
+        throw new Error("email-not-verified");
       }
       
       toast({
@@ -110,12 +133,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       return user;
     } catch (error: any) {
+      console.error("Login error:", error);
+      
+      // Provide more specific error messages based on Firebase error codes
+      let errorMessage = error.message;
+      
+      if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+        errorMessage = "Invalid email or password. Please try again.";
+      } else if (error.code === 'auth/too-many-requests') {
+        errorMessage = "Too many failed attempts. Please try again later.";
+      } else if (error.code === 'auth/user-disabled') {
+        errorMessage = "This account has been disabled. Please contact support.";
+      } else if (error.message === "email-not-verified") {
+        errorMessage = "Email not verified. Please check your inbox and spam folder for the verification link.";
+      }
+      
       toast({
         title: "Login failed",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive",
       });
-      return null;
+      
+      throw error;
     }
   };
 
@@ -128,6 +167,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         description: "You have been logged out successfully.",
       });
     } catch (error: any) {
+      console.error("Logout error:", error);
       toast({
         title: "Logout failed",
         description: error.message,
