@@ -5,7 +5,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Form,
   FormControl,
@@ -16,7 +15,8 @@ import {
 } from "@/components/ui/form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { LogIn } from "lucide-react";
+import { LogIn, Mail } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -26,9 +26,12 @@ const loginSchema = z.object({
 type LoginFormValues = z.infer<typeof loginSchema>;
 
 export default function LoginForm() {
-  const { login } = useAuth();
+  const { login, currentUser, sendVerificationEmail } = useAuth();
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [verificationNeeded, setVerificationNeeded] = useState(false);
+  const [userEmail, setUserEmail] = useState("");
+  const [resendingEmail, setResendingEmail] = useState(false);
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -44,9 +47,24 @@ export default function LoginForm() {
       const user = await login(values.email, values.password);
       if (user) {
         navigate("/");
+      } else {
+        // If login returns null, it might be due to email not verified
+        setUserEmail(values.email);
+        setVerificationNeeded(true);
       }
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    if (!currentUser) return;
+    
+    setResendingEmail(true);
+    try {
+      await sendVerificationEmail(currentUser);
+    } finally {
+      setResendingEmail(false);
     }
   };
 
@@ -58,6 +76,16 @@ export default function LoginForm() {
           Enter your credentials to access your dashboard
         </p>
       </div>
+
+      {verificationNeeded && (
+        <Alert className="mb-4 bg-muted border-primary">
+          <Mail className="h-5 w-5" />
+          <AlertTitle>Email verification required</AlertTitle>
+          <AlertDescription>
+            Your email needs to be verified before logging in. Please check your inbox for the verification link or log in after verification.
+          </AlertDescription>
+        </Alert>
+      )}
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -98,6 +126,18 @@ export default function LoginForm() {
               </>
             )}
           </Button>
+
+          {verificationNeeded && currentUser && (
+            <Button 
+              type="button" 
+              variant="outline" 
+              className="w-full" 
+              onClick={handleResendVerification}
+              disabled={resendingEmail}
+            >
+              {resendingEmail ? "Sending..." : "Resend verification email"}
+            </Button>
+          )}
         </form>
       </Form>
 

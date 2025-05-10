@@ -6,7 +6,8 @@ import {
   signInWithEmailAndPassword, 
   signOut, 
   onAuthStateChanged,
-  updateProfile
+  updateProfile,
+  sendEmailVerification
 } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
@@ -18,8 +19,7 @@ type AuthContextType = {
   signup: (email: string, password: string) => Promise<User | null>;
   login: (email: string, password: string) => Promise<User | null>;
   logout: () => Promise<void>;
-  sendVerificationCode: (email: string) => Promise<boolean>;
-  verifyCode: (email: string, code: string) => Promise<boolean>;
+  sendVerificationEmail: (user: User) => Promise<boolean>;
   updateProfilePicture: (file: File) => Promise<string | null>;
 };
 
@@ -33,76 +33,26 @@ export function useAuth() {
   return context;
 }
 
-// For demo purposes, we'll store the verification codes in memory
-// In a real app, these would be stored in a database
-const verificationCodes: Record<string, { code: string, timestamp: number }> = {};
-
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const storage = getStorage();
 
-  // Generate a 6-digit code and store it
-  const sendVerificationCode = async (email: string) => {
+  // Send verification email using Firebase's built-in functionality
+  const sendVerificationEmail = async (user: User) => {
     try {
-      // Generate a random 6-digit code
-      const code = Math.floor(100000 + Math.random() * 900000).toString();
-      
-      // Store the code with a timestamp (expires in 10 minutes)
-      verificationCodes[email] = { 
-        code, 
-        timestamp: Date.now() + 10 * 60 * 1000 
-      };
-      
-      // In a real app, you would send an email here
-      console.log(`Verification code for ${email}: ${code}`);
+      await sendEmailVerification(user);
       
       toast({
-        title: "Verification code sent",
-        description: `A verification code has been sent to ${email}`,
+        title: "Verification email sent",
+        description: `A verification email has been sent to ${user.email}. Please check your inbox (and spam folder).`,
       });
       
       return true;
     } catch (error: any) {
       toast({
-        title: "Failed to send verification code",
-        description: error.message,
-        variant: "destructive",
-      });
-      return false;
-    }
-  };
-
-  // Verify the code
-  const verifyCode = async (email: string, code: string) => {
-    try {
-      const storedData = verificationCodes[email];
-      
-      if (!storedData) {
-        throw new Error("No verification code found for this email");
-      }
-      
-      if (Date.now() > storedData.timestamp) {
-        throw new Error("Verification code has expired");
-      }
-      
-      if (storedData.code !== code) {
-        throw new Error("Incorrect verification code");
-      }
-      
-      // Code verified successfully
-      delete verificationCodes[email]; // Clean up
-      
-      toast({
-        title: "Verification successful",
-        description: "Your email has been verified",
-      });
-      
-      return true;
-    } catch (error: any) {
-      toast({
-        title: "Verification failed",
+        title: "Failed to send verification email",
         description: error.message,
         variant: "destructive",
       });
@@ -114,11 +64,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signup = async (email: string, password: string) => {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+      
+      // Send verification email
+      await sendVerificationEmail(user);
+      
       toast({
         title: "Account created successfully",
-        description: "Welcome to CoinVista Dashboard!",
+        description: "Please verify your email before logging in.",
       });
-      return userCredential.user;
+      
+      return user;
     } catch (error: any) {
       toast({
         title: "Signup failed",
@@ -133,11 +89,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string) => {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+      
+      if (!user.emailVerified) {
+        toast({
+          title: "Email not verified",
+          description: "Please verify your email before logging in. Check your inbox for the verification link.",
+          variant: "destructive",
+        });
+        
+        // Auto-logout the user
+        await signOut(auth);
+        return null;
+      }
+      
       toast({
         title: "Logged in successfully",
         description: "Welcome back to CoinVista Dashboard!",
       });
-      return userCredential.user;
+      
+      return user;
     } catch (error: any) {
       toast({
         title: "Login failed",
@@ -221,8 +192,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signup,
     login,
     logout,
-    sendVerificationCode,
-    verifyCode,
+    sendVerificationEmail,
     updateProfilePicture
   };
 
