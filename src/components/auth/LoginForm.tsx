@@ -87,52 +87,13 @@ export default function LoginForm() {
     setResendAttempted(true);
     
     try {
-      // Try to sign in with the email to get the user object
-      try {
-        // Try with currentUser if available
-        if (currentUser) {
-          await sendEmailVerification(currentUser);
-          
-          toast({
-            title: "Verification email sent",
-            description: "Please check your inbox and spam folder for the verification link.",
-          });
-          
-          return;
-        }
-      } catch (innerError) {
-        console.error("Could not use current user for verification:", innerError);
-      }
+      // Try to use the context method first (which is safer)
+      await sendVerificationEmail(userEmail, form.getValues().password);
       
-      // Alternative approach - temporarily authenticate to send verification
-      try {
-        // Create a temporary authentication
-        const tempAuth = auth;
-        
-        // Try to sign in with email/password from the form
-        await tempAuth.signInWithEmailAndPassword(
-          tempAuth, 
-          userEmail,
-          form.getValues().password
-        );
-        
-        // If successful, the user is now logged in briefly
-        if (tempAuth.currentUser) {
-          await sendEmailVerification(tempAuth.currentUser);
-          
-          // Sign out immediately
-          await tempAuth.signOut(tempAuth);
-          
-          toast({
-            title: "Verification email sent",
-            description: "Please check your inbox and spam folder for the verification link.",
-          });
-        }
-      } catch (authError: any) {
-        // This is expected since we don't have the user's credentials
-        setResendError("Could not automatically send verification email. Please contact support or try signing up again.");
-        console.error("Auth error during verification:", authError);
-      }
+      toast({
+        title: "Verification email sent",
+        description: "Please check your inbox and spam folder for the verification link.",
+      });
     } catch (error: any) {
       setResendError(error.message || "Failed to send verification email");
       toast({

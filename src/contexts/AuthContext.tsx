@@ -20,7 +20,7 @@ type AuthContextType = {
   signup: (email: string, password: string) => Promise<User | null>;
   login: (email: string, password: string) => Promise<User | null>;
   logout: () => Promise<void>;
-  sendVerificationEmail: (user: User) => Promise<boolean>;
+  sendVerificationEmail: (email: string, password: string) => Promise<boolean>;
   updateProfilePicture: (file: File) => Promise<string | null>;
 };
 
@@ -41,13 +41,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const storage = getStorage();
 
   // Send verification email using Firebase's built-in functionality
-  const sendVerificationEmail = async (user: User) => {
+  const sendVerificationEmail = async (email: string, password: string) => {
     try {
-      await sendEmailVerification(user);
+      // First, check if we have a currentUser that matches the email
+      if (currentUser && currentUser.email === email) {
+        // User is already logged in and matches
+        await sendEmailVerification(currentUser);
+      } else {
+        // Need to temporarily authenticate
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+        
+        if (user) {
+          await sendEmailVerification(user);
+          // Sign out the temporary session if it's not the same as currentUser
+          if (!currentUser) {
+            await signOut(auth);
+          }
+        }
+      }
       
       toast({
         title: "Verification email sent",
-        description: `A verification email has been sent to ${user.email}. Please check both your inbox and spam folders.`,
+        description: `A verification email has been sent to ${email}. Please check both your inbox and spam folders.`,
       });
       
       return true;
@@ -61,6 +77,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         errorMessage = "Too many verification requests. Please wait a while before trying again.";
       } else if (error?.code === 'auth/internal-error') {
         errorMessage = "Server error. Please try again later or contact support.";
+      } else if (error?.code === 'auth/invalid-credential') {
+        errorMessage = "Invalid email or password. Please ensure your credentials are correct.";
+      } else if (error?.code === 'auth/user-not-found') {
+        errorMessage = "No user found with this email address. Please sign up first.";
       }
       
       toast({
@@ -68,7 +88,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         description: errorMessage,
         variant: "destructive",
       });
-      return false;
+      throw new Error(errorMessage);
     }
   };
 
@@ -79,12 +99,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const user = userCredential.user;
       
       // Send verification email
-      await sendVerificationEmail(user);
-      
-      toast({
-        title: "Account created successfully",
-        description: "Please verify your email before logging in. Check both your inbox and spam folder.",
-      });
+      if (user) {
+        await sendEmailVerification(user);
+        
+        toast({
+          title: "Account created successfully",
+          description: "Please verify your email before logging in. Check both your inbox and spam folder.",
+        });
+      }
       
       return user;
     } catch (error: any) {
@@ -118,7 +140,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (!user.emailVerified) {
         // Send a fresh verification email if not verified
-        await sendVerificationEmail(user);
+        await sendEmailVerification(user);
         
         // Force sign out since email isn't verified
         await signOut(auth);

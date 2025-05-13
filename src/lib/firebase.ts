@@ -39,27 +39,5 @@ if (typeof window !== 'undefined') {
   analytics = getAnalytics(app);
 }
 
-/**
- * Send a verification email to a user who isn't logged in yet
- * @param email The email address to send verification to
- */
-export const sendVerificationEmailToAddress = async (email: string) => {
-  try {
-    // First create a temporary authentication session
-    const userCredential = await signInWithEmailAndPassword(auth, email, "temporary-password-placeholder");
-    // Send verification email
-    if (userCredential.user) {
-      await sendEmailVerification(userCredential.user);
-      // Sign out the temporary session
-      await signOut(auth);
-      return true;
-    }
-    return false;
-  } catch (error) {
-    console.error("Error sending verification email:", error);
-    return false;
-  }
-};
-
 export { analytics };
 export default app;
